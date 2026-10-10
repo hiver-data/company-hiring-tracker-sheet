@@ -72,7 +72,7 @@ t('async run: POST /runs (never run-sync), polls, writes Jobs + Matches', () => 
   assert.equal(tide[1], 'not matched');
   assert.equal(tide[3], 0);
   assert.match(tide[4], /no board/);
-  assert.equal(post.body.maxJobsPerCompany, undefined); // empty setting = no per-company cap
+  assert.equal(post.body.maxJobsPerCompany, 25); // default
   assert.equal(e.store.RUN_ID, undefined);
 });
 
@@ -160,7 +160,7 @@ t('Matches shows jobs per company; hitting maxJobs says why a matched company ha
   // the board's live check of 2026-10-10 (run 15fNBFZwugvyyJFPp): maxJobs 10, Stripe filled all 10, NVIDIA matched with 0
   const rows = Array.from({ length: 10 }, (_, i) => ({ company: 'Stripe', title: 'Job ' + i, url: 'https://stripe.com/jobs/search?gh_jid=' + i, inputCompany: 'stripe.com' }));
   const report = { 'stripe.com': { status: 'matched', boards: ['greenhouse:stripe'], evidence: 'board name matches' }, NVIDIA: { status: 'matched', boards: ['workday:nvidia.wd5/NVIDIAExternalCareerSite'], evidence: 'linked from the company website' } };
-  const e = makeEnv({ tabs: { Companies: [['stripe.com'], ['NVIDIA']], Settings: [['setting', 'value'], ['maxJobs', 10]] }, rows, report });
+  const e = makeEnv({ tabs: { Companies: [['stripe.com'], ['NVIDIA']], Settings: [['setting', 'value'], ['maxJobs', 10], ['maxJobsPerCompany', 0]] }, rows, report });
   e.ctx.fetchOpenJobs();
   const m = e.sheets.Matches.rows;
   assert.deepEqual(m[0].slice(0, 4), ['company', 'status', 'board', 'jobs this run']);
@@ -173,3 +173,13 @@ t('Matches shows jobs per company; hitting maxJobs says why a matched company ha
 });
 
 console.log(`${n} tests passed`);
+
+t('default maxJobsPerCompany 25; 0 = no cap; start toast warns when maxJobs is too small', () => {
+  const e = makeEnv({ tabs: { Companies: [['stripe.com'], ['NVIDIA']], Settings: [['setting', 'value'], ['maxJobs', 10], ['maxJobsPerCompany', 25]] } });
+  e.ctx.fetchOpenJobs();
+  assert.equal(e.calls[0].body.maxJobsPerCompany, 25);
+  assert.ok(e.toasts.some(m => /Started run.*less than companies x maxJobsPerCompany/.test(m)));
+  const none = makeEnv({ tabs: { Companies: companies, Settings: [['setting', 'value'], ['maxJobsPerCompany', 0]] } });
+  none.ctx.fetchOpenJobs();
+  assert.equal(none.calls[0].body.maxJobsPerCompany, undefined);
+});

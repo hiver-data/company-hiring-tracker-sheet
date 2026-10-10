@@ -17,7 +17,7 @@ var DEFAULT_SETTINGS = [
   ['remoteOnly', 'FALSE', 'TRUE keeps only jobs the company marks as remote'],
   ['postedWithinDays', '', 'whole number, empty = all open jobs'],
   ['maxJobs', '500', 'hard cap on jobs delivered AND charged per run ($1.50 per 1,000 jobs)'],
-  ['maxJobsPerCompany', '', 'whole number, empty = no cap per company. Set it when one big employer could use up maxJobs before the companies below it are read'],
+  ['maxJobsPerCompany', '25', 'whole number, default 25, 0 = no cap per company. Keeps one big employer from using up maxJobs before the companies below it are read. maxJobs should be at least companies x this number'],
   ['maxChargeUsd', '1', 'the run stops once it has cost this many dollars']
 ];
 var POLL_MS = 5000;
@@ -156,7 +156,9 @@ function startRun_(onlyNew) {
   var run = api_('POST', '/acts/' + ACTOR_ID + '/runs?maxTotalChargeUsd=' + maxCharge_(), input).data;
   p.setProperty('RUN_ID', run.id);
   p.setProperty('RUN_MODE', onlyNew ? 'new' : 'all');
-  toast_('Started run ' + run.id + ' for ' + input.companies.length + ' companies.');
+  var startMsg = 'Started run ' + run.id + ' for ' + input.companies.length + ' companies.';
+  if (input.maxJobsPerCompany && input.maxJobs < input.companies.length * input.maxJobsPerCompany) startMsg += ' maxJobs (' + input.maxJobs + ') is less than companies x maxJobsPerCompany (' + input.companies.length * input.maxJobsPerCompany + '): later companies may get fewer rows. Raise maxJobs to cover them all.';
+  toast_(startMsg);
   return pollRun_();
 }
 

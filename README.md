@@ -24,7 +24,7 @@ Useful for recruiters watching competitors, sales teams looking for companies th
 
 ## What it costs
 
-The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). `maxJobs` counts across all companies, so one large employer near the top of the list can use it up before the companies below it are read: set `maxJobsPerCompany` to share it out (for example 50 jobs each). When a run stops at `maxJobs`, the sheet says so and the `Matches` tab shows which companies got 0 rows. The free Apify plan includes $5 of usage a month.
+The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). `maxJobs` counts across all companies, so one large employer near the top of the list can use it up before the companies below it are read: `maxJobsPerCompany` (default 25 in the Settings tab) shares it out so every company gets rows; keep `maxJobs` at least companies x `maxJobsPerCompany`, or the sheet's start message warns that later companies may get fewer rows (set it to 0 for no per-company cap). When a run stops at `maxJobs`, the sheet says so and the `Matches` tab shows which companies got 0 rows. The free Apify plan includes $5 of usage a month.
 
 ## What we measured
 
