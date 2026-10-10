@@ -18,13 +18,13 @@ Useful for recruiters watching competitors, sales teams looking for companies th
 
 ## How it works
 
-- It starts an asynchronous Apify run (`POST /v2/acts/hiver~all-open-jobs-by-company/runs`) and polls it, then reads the dataset. It does not use the synchronous endpoint, because Apps Script's `UrlFetchApp` gives up on long requests and a run can take 25 to 40 seconds or more with many companies.
+- It starts an asynchronous Apify run (`POST /v2/acts/hiver~all-open-jobs-by-company/runs`) and polls it, then reads the dataset. It does not use the synchronous endpoint, because Apps Script's `UrlFetchApp` gives up on long requests: on the Lab bench a run took 17 to 98 seconds for 2 to 5 companies, and longer lists take longer.
 - Apps Script stops a script after 6 minutes. The script polls for at most 4.5 minutes, then sets a one-minute trigger and continues from the stored run id. `hiver > Check / resume running fetch` does the same by hand.
 - `Jobs` columns are the same as in the [CSV examples](https://github.com/hiver-data/all-open-jobs-by-company): company, source, title, location, workplaceType, isRemote, department, employmentType, postedAt, salaryMin, salaryMax, salaryCurrency, salaryInterval, url, applyUrl, inputCompany.
 
 ## What it costs
 
-The Actor charges $1.50 per 1,000 jobs on the Apify free plan (less on higher plans), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). The free Apify plan includes $5 of usage a month.
+The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). The free Apify plan includes $5 of usage a month.
 
 ## What we measured
 
@@ -34,8 +34,8 @@ Lab bench, 2026-10-10 08:16 UTC, Actor build 0.3.22, four test cases with the sa
 |---|---|---|---|
 | Accuracy (job URL on the company's real board, system named correctly, pay range) | 100% | 68% | 23% |
 | Completeness (job fields filled) | 88% | 58% | 57% |
-| Runs that succeeded | 100% | 75% | 25% |
-| Runtime, 4 cases summed | 39.5 s | 19.3 s | 3.3 s |
+| Test cases that returned the companies' jobs (at least the bench minimum) | 4 of 4 | 3 of 4 | 1 of 4 |
+| Runtime per test case (average of 4) | 39.5 s | 19.3 s | 3.3 s |
 | Price per 1,000 jobs in these runs | $1.51 | $2.34 | $2.01 |
 
 The other two are faster. Four cases and a handful of companies is a small sample; the bench runs again after every new build.
