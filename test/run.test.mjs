@@ -10,7 +10,7 @@ const code = fs.readFileSync(path.join(here, '..', 'apps-script', 'Code.gs'), 'u
 const items = JSON.parse(fs.readFileSync(path.join(here, 'fixtures', 'dataset-items.json'), 'utf8'));
 const matches = JSON.parse(fs.readFileSync(path.join(here, 'fixtures', 'company-matches.json'), 'utf8'));
 
-function makeEnv({ statuses = ['RUNNING', 'SUCCEEDED'], pageSize = 1000, tabs = {}, props = { APIFY_TOKEN: 'tok' } } = {}) {
+function makeEnv({ statuses = ['RUNNING', 'SUCCEEDED'], pageSize = 1000, tabs = {}, props = { APIFY_TOKEN: 'tok' }, rows = items, report = matches } = {}) {
   const calls = [], toasts = [], triggers = [];
   let clock = 0, polls = 0;
   const sheets = {};
@@ -37,8 +37,8 @@ function makeEnv({ statuses = ['RUNNING', 'SUCCEEDED'], pageSize = 1000, tabs = 
       const resp = (code, obj) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(obj) });
       if (opts.method === 'POST' && url.includes('/acts/hiver~all-open-jobs-by-company/runs')) return resp(201, { data: { id: 'RUN1', status: 'READY' } });
       if (url.includes('/actor-runs/RUN1')) { const st = statuses[Math.min(polls++, statuses.length - 1)]; return resp(200, { data: { id: 'RUN1', status: st, statusMessage: 'x', defaultDatasetId: 'DS1', defaultKeyValueStoreId: 'KV1' } }); }
-      if (url.includes('/datasets/DS1/items')) { const off = +/offset=(\d+)/.exec(url)[1]; return resp(200, items.slice(off, off + pageSize)); }
-      if (url.includes('/records/COMPANY_MATCHES')) return resp(200, matches);
+      if (url.includes('/datasets/DS1/items')) { const off = +/offset=(\d+)/.exec(url)[1]; return resp(200, rows.slice(off, off + pageSize)); }
+      if (url.includes('/records/COMPANY_MATCHES')) return resp(200, report);
       return resp(404, {});
     } },
   };
@@ -70,7 +70,9 @@ t('async run: POST /runs (never run-sync), polls, writes Jobs + Matches', () => 
   assert.equal(e.sheets.Matches.rows.length, Object.keys(matches).length + 1);
   const tide = e.sheets.Matches.rows.find(r => r[0] === 'Tide');
   assert.equal(tide[1], 'not matched');
-  assert.match(tide[3], /no board/);
+  assert.equal(tide[3], 0);
+  assert.match(tide[4], /no board/);
+  assert.equal(post.body.maxJobsPerCompany, undefined); // empty setting = no per-company cap
   assert.equal(e.store.RUN_ID, undefined);
 });
 
@@ -139,6 +141,35 @@ t('no token value is ever written to a sheet', () => {
   const e = makeEnv({ tabs: { Companies: companies }, props: { APIFY_TOKEN: 'SECRET123' } });
   e.ctx.fetchOpenJobs();
   assert.ok(!JSON.stringify(Object.values(e.sheets).map(s => s.rows)).includes('SECRET123'));
+});
+
+t('maxJobsPerCompany setting is sent; older Settings tabs get the new row', () => {
+  const e = makeEnv({ tabs: { Companies: companies, Settings: [['setting', 'value', 'what it does'], ['maxJobs', 200, 'x'], ['maxJobsPerCompany', 25, 'x']] } });
+  e.ctx.fetchOpenJobs();
+  assert.equal(e.calls[0].body.maxJobsPerCompany, 25);
+  assert.equal(e.calls[0].body.maxJobs, 200);
+  const old = makeEnv({ tabs: { Settings: [['setting', 'value', 'what it does'], ['maxJobs', 500, 'x']] } });
+  old.ctx.ensureSettings();
+  const keys = old.sheets.Settings.rows.map(r => r[0]);
+  assert.equal(keys.filter(k => k === 'maxJobs').length, 1);
+  assert.ok(keys.includes('maxJobsPerCompany'));
+  assert.ok(keys.includes('maxChargeUsd'));
+});
+
+t('Matches shows jobs per company; hitting maxJobs says why a matched company has 0 rows', () => {
+  // the board's live check of 2026-10-10 (run 15fNBFZwugvyyJFPp): maxJobs 10, Stripe filled all 10, NVIDIA matched with 0
+  const rows = Array.from({ length: 10 }, (_, i) => ({ company: 'Stripe', title: 'Job ' + i, url: 'https://stripe.com/jobs/search?gh_jid=' + i, inputCompany: 'stripe.com' }));
+  const report = { 'stripe.com': { status: 'matched', boards: ['greenhouse:stripe'], evidence: 'board name matches' }, NVIDIA: { status: 'matched', boards: ['workday:nvidia.wd5/NVIDIAExternalCareerSite'], evidence: 'linked from the company website' } };
+  const e = makeEnv({ tabs: { Companies: [['stripe.com'], ['NVIDIA']], Settings: [['setting', 'value'], ['maxJobs', 10]] }, rows, report });
+  e.ctx.fetchOpenJobs();
+  const m = e.sheets.Matches.rows;
+  assert.deepEqual(m[0].slice(0, 4), ['company', 'status', 'board', 'jobs this run']);
+  assert.equal(m.find(r => r[0] === 'stripe.com')[3], 10);
+  assert.equal(m.find(r => r[0] === 'NVIDIA')[3], 0);
+  assert.match(e.toasts[e.toasts.length - 1], /Stopped at maxJobs.*maxJobsPerCompany/);
+  const ok = makeEnv({ tabs: { Companies: [['stripe.com'], ['NVIDIA']], Settings: [['setting', 'value'], ['maxJobs', 10], ['maxJobsPerCompany', 5]] }, rows, report });
+  ok.ctx.fetchOpenJobs();
+  assert.doesNotMatch(ok.toasts[ok.toasts.length - 1], /Stopped at maxJobs/);
 });
 
 console.log(`${n} tests passed`);

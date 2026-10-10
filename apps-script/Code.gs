@@ -9,7 +9,7 @@ var ACTOR_ID = 'hiver~all-open-jobs-by-company';
 var API = 'https://api.apify.com/v2';
 var JOB_COLUMNS = ['company', 'source', 'title', 'location', 'workplaceType', 'isRemote', 'department',
   'employmentType', 'postedAt', 'salaryMin', 'salaryMax', 'salaryCurrency', 'salaryInterval', 'url', 'applyUrl', 'inputCompany'];
-var MATCH_COLUMNS = ['company', 'status', 'board', 'evidence or reason', 'failed boards'];
+var MATCH_COLUMNS = ['company', 'status', 'board', 'jobs this run', 'evidence or reason', 'failed boards'];
 var DEFAULT_SETTINGS = [
   ['titleKeywords', '', 'comma separated; keep jobs whose title contains one of these words'],
   ['excludeTitleKeywords', '', 'comma separated; drop jobs whose title contains one of these words'],
@@ -17,6 +17,7 @@ var DEFAULT_SETTINGS = [
   ['remoteOnly', 'FALSE', 'TRUE keeps only jobs the company marks as remote'],
   ['postedWithinDays', '', 'whole number, empty = all open jobs'],
   ['maxJobs', '500', 'hard cap on jobs delivered AND charged per run ($1.50 per 1,000 jobs)'],
+  ['maxJobsPerCompany', '', 'whole number, empty = no cap per company. Set it when one big employer could use up maxJobs before the companies below it are read'],
   ['maxChargeUsd', '1', 'the run stops once it has cost this many dollars']
 ];
 var POLL_MS = 5000;
@@ -58,7 +59,13 @@ function sheet_(name) {
 
 function ensureSettings() {
   var s = ss_().getSheetByName('Settings');
-  if (s) return s;
+  if (s) {
+    var have = {};
+    s.getDataRange().getValues().forEach(function (row) { have[String(row[0]).trim()] = 1; });
+    var missing = DEFAULT_SETTINGS.filter(function (d) { return !have[d[0]]; });
+    if (missing.length) s.getRange(s.getLastRow() + 1, 1, missing.length, 3).setValues(missing);
+    return s;
+  }
   s = ss_().insertSheet('Settings');
   s.getRange(1, 1, 1, 3).setValues([['setting', 'value', 'what it does']]);
   s.getRange(2, 1, DEFAULT_SETTINGS.length, 3).setValues(DEFAULT_SETTINGS);
@@ -100,6 +107,8 @@ function buildInput_(onlyNew) {
   var input = { companies: readCompanies_(), includeDescription: false };
   var maxJobs = parseInt(cfg.maxJobs, 10);
   input.maxJobs = maxJobs > 0 ? maxJobs : 500;
+  var perCompany = parseInt(cfg.maxJobsPerCompany, 10);
+  if (perCompany > 0) input.maxJobsPerCompany = perCompany;
   if (list_(cfg.titleKeywords).length) input.titleKeywords = list_(cfg.titleKeywords);
   if (list_(cfg.excludeTitleKeywords).length) input.excludeTitleKeywords = list_(cfg.excludeTitleKeywords);
   if (list_(cfg.locations).length) input.locations = list_(cfg.locations);
@@ -168,7 +177,9 @@ function pollRun_() {
       clearRun_();
       deleteResumeTriggers_();
       var n = writeResults_(run, mode);
-      toast_(run.status === 'SUCCEEDED' ? n + ' jobs written.' : 'Run ' + run.status + ' - wrote the ' + n + ' jobs it delivered.');
+      var msg = run.status === 'SUCCEEDED' ? n + ' jobs written.' : 'Run ' + run.status + ' - wrote the ' + n + ' jobs it delivered.';
+      if (hitTotalCap_(n)) msg += ' Stopped at maxJobs: companies lower in the list may have 0 rows (see Matches). Raise maxJobs or set maxJobsPerCompany in Settings.';
+      toast_(msg);
       return 'done';
     }
     if (run.status === 'FAILED') {
@@ -212,12 +223,20 @@ function jobRow_(job) {
   return JOB_COLUMNS.map(function (c) { var v = job[c]; return v == null ? '' : v; });
 }
 
-function matchRows_(report) {
+function matchRows_(report, counts) {
+  counts = counts || {};
   return Object.keys(report || {}).map(function (k) {
-    var m = report[k];
-    if (m.status === 'matched') return [k, 'matched', (m.boards || []).join(', '), m.evidence || '', (m.failedBoards || []).join(', ')];
-    return [k, 'not matched', '', m.reason || '', ''];
+    var m = report[k], n = counts[k] || 0;
+    if (m.status === 'matched') return [k, 'matched', (m.boards || []).join(', '), n, m.evidence || '', (m.failedBoards || []).join(', ')];
+    return [k, 'not matched', '', n, m.reason || '', ''];
   });
+}
+
+/** Jobs written per company as typed in column A (the Actor's inputCompany field). */
+function countByCompany_(items) {
+  var c = {};
+  items.forEach(function (j) { var k = j.inputCompany; if (k != null) c[k] = (c[k] || 0) + 1; });
+  return c;
 }
 
 function writeTable_(name, header, rows) {
@@ -242,8 +261,15 @@ function writeResults_(run, mode) {
   } else {
     writeTable_('Jobs', JOB_COLUMNS, rows);
   }
-  if (rec) writeTable_('Matches', MATCH_COLUMNS, matchRows_(rec));
+  if (rec) writeTable_('Matches', MATCH_COLUMNS, matchRows_(rec, countByCompany_(items)));
   return rows.length;
+}
+
+/** True when the run stopped at the run-wide maxJobs cap (companies lower in the list may have 0 rows). */
+function hitTotalCap_(n) {
+  var cfg = readSettings_(), cap = parseInt(cfg.maxJobs, 10);
+  if (!(cap > 0)) cap = 500;
+  return n >= cap && !(parseInt(cfg.maxJobsPerCompany, 10) > 0);
 }
 
 function enableDaily() {

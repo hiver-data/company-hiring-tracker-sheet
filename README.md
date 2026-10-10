@@ -9,8 +9,8 @@ Useful for recruiters watching competitors, sales teams looking for companies th
 1. Make a new Google Sheet. Rename the first tab `Companies`. Put company names (`Spotify`) or websites (`stripe.com`) in column A, one per row. Websites match more reliably.
 2. Open `Extensions > Apps Script`. Replace the contents of `Code.gs` with [apps-script/Code.gs](apps-script/Code.gs). (Optional: in Project Settings tick "Show appsscript.json" and paste [apps-script/appsscript.json](apps-script/appsscript.json) to limit the permissions the script asks for.) Save, then reload the sheet.
 3. Create a free Apify account and copy your API token from Apify Console > Settings > API & Integrations. In the sheet use `hiver > Set Apify token`. The token is stored in Script Properties, never in a cell.
-4. Optional: `hiver > Create Settings tab` adds filters (title, location, remote only, posted within N days) and the caps.
-5. Click `hiver > Fetch open jobs` and approve the permissions on the first run. The `Jobs` tab fills in; the `Matches` tab lists the career board used for each company with the evidence, or why a company was not matched.
+4. Optional: `hiver > Create Settings tab` adds filters (title, location, remote only, posted within N days) and the caps. Run it again after updating the script and it adds any new settings to your existing tab.
+5. Click `hiver > Fetch open jobs` and approve the permissions on the first run. The `Jobs` tab fills in; the `Matches` tab lists the career board used for each company, the number of jobs written for it, and the evidence, or why a company was not matched.
 
 ## Daily "what is new" tab
 
@@ -24,7 +24,7 @@ Useful for recruiters watching competitors, sales teams looking for companies th
 
 ## What it costs
 
-The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). The free Apify plan includes $5 of usage a month.
+The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). `maxJobs` counts across all companies, so one large employer near the top of the list can use it up before the companies below it are read: set `maxJobsPerCompany` to share it out (for example 50 jobs each). When a run stops at `maxJobs`, the sheet says so and the `Matches` tab shows which companies got 0 rows. The free Apify plan includes $5 of usage a month.
 
 ## What we measured
 
@@ -54,6 +54,8 @@ npm test
 ```
 
 Runs `Code.gs` in Node with mocked `UrlFetchApp`, `SpreadsheetApp`, `PropertiesService` and `ScriptApp`, over job rows recorded from a real board run of the Actor (`test/fixtures`). It makes no network calls and no Apify run. Node 18+.
+
+Live check, 2026-10-10: the previous version of `Code.gs` (commit a1d4b64) ran unchanged against the real Apify API, with Google's Sheets, properties and triggers simulated: 2 companies (stripe.com, NVIDIA), run SUCCEEDED in 21 seconds, 10 jobs written, both companies matched. All 10 rows were Stripe's because `maxJobs` was 10; that run is why `maxJobsPerCompany` and the jobs-per-company column exist. The script has not yet been run inside a real Google Sheet.
 
 ## Notes
 
