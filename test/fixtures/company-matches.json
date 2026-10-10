@@ -1,0 +1,48 @@
+{
+ "Babylist": {
+  "status": "matched",
+  "boards": [
+   "greenhouse:Babylist"
+  ],
+  "evidence": "recorded board run"
+ },
+ "wayve": {
+  "status": "matched",
+  "boards": [
+   "ashby:wayve"
+  ],
+  "evidence": "recorded board run"
+ },
+ "Sia": {
+  "status": "matched",
+  "boards": [
+   "smartrecruiters:Sia"
+  ],
+  "evidence": "recorded board run"
+ },
+ "capitalone": {
+  "status": "matched",
+  "boards": [
+   "workday:capitalone.wd12/capital_one"
+  ],
+  "evidence": "recorded board run"
+ },
+ "Atlassian": {
+  "status": "matched",
+  "boards": [
+   "icims:careers-americas"
+  ],
+  "evidence": "recorded board run"
+ },
+ "Pinterest Job Advertisements": {
+  "status": "matched",
+  "boards": [
+   "greenhouse:pinterestjobadvertisements"
+  ],
+  "evidence": "recorded board run"
+ },
+ "Tide": {
+  "status": "unmatched",
+  "reason": "no board links to the company website and no board names the company"
+ }
+}
