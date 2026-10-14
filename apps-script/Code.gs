@@ -16,7 +16,7 @@ var DEFAULT_SETTINGS = [
   ['locations', '', 'comma separated; keep jobs whose location contains one of these words'],
   ['remoteOnly', 'FALSE', 'TRUE keeps only jobs the company marks as remote'],
   ['postedWithinDays', '', 'whole number, empty = all open jobs'],
-  ['maxJobs', '500', 'hard cap on jobs delivered AND charged per run ($1.50 per 1,000 jobs)'],
+  ['maxJobs', '500', 'hard cap on jobs delivered per run ($0.03 per company with 20+ jobs, $0.0015 per job under 20)'],
   ['maxJobsPerCompany', '25', 'whole number, default 25, 0 = no cap per company. Keeps one big employer from using up maxJobs before the companies below it are read. maxJobs should be at least companies x this number'],
   ['maxChargeUsd', '1', 'the run stops once it has cost this many dollars']
 ];

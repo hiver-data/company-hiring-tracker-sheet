@@ -24,7 +24,7 @@ Useful for recruiters watching competitors, sales teams looking for companies th
 
 ## What it costs
 
-The Actor charges $1.50 per 1,000 jobs on the Apify Free and Starter plans (less on Scale and Business), plus Apify's $0.00005 start fee per run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). `maxJobs` counts across all companies, so one large employer near the top of the list can use it up before the companies below it are read: `maxJobsPerCompany` (default 25 in the Settings tab) shares it out so every company gets rows; keep `maxJobs` at least companies x `maxJobsPerCompany`, or the sheet's start message warns that later companies may get fewer rows (set it to 0 for no per-company cap). When a run stops at `maxJobs`, the sheet says so and the `Matches` tab shows which companies got 0 rows. The free Apify plan includes $5 of usage a month.
+The Actor charges $0.03 per company for all its open jobs up to 1,000 on the Apify Free and Starter plans (less on Scale and Business); a company with fewer than 20 jobs in a run costs $0.0015 per job instead. Apify adds $0.00005 to start each run. Companies that are not found or have no open jobs cost nothing. By default a run delivers at most 500 jobs and stops once it has cost $1.00 (`maxJobs` and `maxChargeUsd` in the Settings tab). `maxJobs` counts across all companies, so one large employer near the top of the list can use it up before the companies below it are read: `maxJobsPerCompany` (default 25 in the Settings tab) shares it out so every company gets rows; keep `maxJobs` at least companies x `maxJobsPerCompany`, or the sheet's start message warns that later companies may get fewer rows (set it to 0 for no per-company cap). When a run stops at `maxJobs`, the sheet says so and the `Matches` tab shows which companies got 0 rows. A company with 20 or more jobs costs $0.03 however many of its jobs (up to 1,000) the run writes, so for big employers a higher `maxJobsPerCompany` (or 0) gets more rows for the same price. The free Apify plan includes $5 of usage a month.
 
 ## What we measured
 
@@ -36,7 +36,6 @@ Lab bench, 2026-10-10 08:16 UTC, Actor build 0.3.22, four test cases with the sa
 | Completeness (job fields filled) | 88% | 58% | 57% |
 | Test cases that returned the companies' jobs (at least the bench minimum) | 4 of 4 | 3 of 4 | 1 of 4 |
 | Runtime per test case (average of 4) | 39.5 s | 19.3 s | 3.3 s |
-| Price per 1,000 jobs in these runs | $1.51 | $2.34 | $2.01 |
 
 The other two are faster. Four cases and a handful of companies is a small sample; the bench runs again after every new build.
 
