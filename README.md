@@ -37,7 +37,7 @@ Lab bench, 2026-10-10 08:16 UTC, Actor build 0.3.22, four test cases with the sa
 | Test cases that returned the companies' jobs (at least the bench minimum) | 4 of 4 | 3 of 4 | 1 of 4 |
 | Runtime per test case (average of 4) | 39.5 s | 19.3 s | 3.3 s |
 
-The other two are faster. Four cases and a handful of companies is a small sample; the bench runs again after every new build.
+The other two are faster. Four cases and a handful of companies is a small sample; later builds have not been benched again yet.
 
 ## Honest limits
 
